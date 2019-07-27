@@ -1,0 +1,38 @@
+#!/usr/bin/python3
+
+import os
+import re
+import subprocess
+import sys
+import tempfile
+
+if sys.argv[1] == "usage":
+    print("    e ITEM#")
+    print("      Start system editor to modify task on line ITEM#")
+    print()
+    sys.exit(0)
+
+source_todo_file_path = os.environ['TODO_DIR'] + '/todo.txt'
+with open(source_todo_file_path) as source_todo_file:
+    task_number = sys.argv[2]
+    line_number = int(task_number) - 1
+    source_text = ''
+    for i, line in enumerate(source_todo_file):
+        if i == line_number:
+            m = re.search('^(\([A-Z]\) )(.+)$', line)
+            if m:
+                line = m.group(2)
+            source_text = line
+            break
+
+    with tempfile.NamedTemporaryFile(mode='w', suffix='todo') as temp:
+        temp.write(source_text)
+        temp.flush()
+        subprocess.call(['editor', temp.name])
+        with open(temp.name, 'r') as f:
+            subprocess.call([
+                os.environ['TODO_FULL_SH'],
+                'replace',
+                task_number,
+                f.read().strip()
+            ])
